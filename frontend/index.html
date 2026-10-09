@@ -1,0 +1,314 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SwachhAI Smart Waste Intelligence</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#06101f;color:#eaf2ff;font-family:Arial,sans-serif}
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;position:fixed;inset:0 auto 0 0;overflow-y:auto;background:#0b192b;border-right:1px solid #203650;padding:22px 15px;z-index:10}
+.logo{font-size:27px;font-weight:800}.logo span{color:#25e69a}
+.subtitle{font-size:12px;color:#8196b1;margin:5px 0 25px}
+.nav{display:block;color:#9db0c9;text-decoration:none;padding:13px 12px;margin:5px 0;border-radius:9px;cursor:pointer}
+.nav:hover,.nav.active{background:#142943;color:#35e99d}
+.system{margin-top:35px;background:#10243a;padding:14px;border-radius:10px;color:#35e99d}
+.main{margin-left:220px;width:calc(100% - 220px);padding:25px;min-width:0}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}
+h1{font-size:28px;margin:0 0 7px}h2{font-size:20px;margin:0 0 14px}
+.muted{color:#8196b1;font-size:13px}
+.live,.button{padding:10px 14px;border-radius:8px;border:1px solid #31516f;background:#17314d;color:#eaf2ff;font-weight:bold;cursor:pointer}
+.live{color:#35e99d;background:#0d302a}
+.stats,.analytics,.history-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.stats{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card,.panel,.bin-card{background:#0d1d31;border:1px solid #203650;border-radius:13px;padding:17px;min-width:0}
+.stat-title{color:#8196b1;font-size:13px}
+.stat-value{font-size:27px;font-weight:bold;margin-top:9px;overflow-wrap:anywhere}
+.green{color:#35e99d}.yellow{color:#ffc94d}.red{color:#ff6478}.blue{color:#65a9ff}
+.section{margin-top:25px;scroll-margin-top:20px}
+.dashboard-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:17px}
+.bin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.bin-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.badge{display:inline-block;padding:5px 8px;border-radius:12px;font-size:11px;font-weight:bold}
+.normal{background:#123d31;color:#39e89e}.warning{background:#45370f;color:#ffd34f}.critical{background:#481d27;color:#ff6478}
+.fill{font-size:29px;font-weight:bold;margin:14px 0}
+.bar{height:8px;background:#172b42;border-radius:8px;overflow:hidden}
+.bar-inner{height:100%;border-radius:8px}
+.details{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:#91a5bd;font-size:12px;margin-top:12px}
+.alert{background:#102238;border-left:3px solid #ffc94d;padding:13px;border-radius:7px;margin-bottom:10px}
+.alert.critical-alert{border-color:#ff6478}.alert-title{font-weight:bold;margin-bottom:6px}.alert-text{font-size:13px;color:#91a5bd}
+.ai-box{background:#0d302a;border:1px solid #17644e;border-radius:12px;padding:17px;margin-top:14px}
+.ai-title{color:#37ed9e;font-weight:bold}.ai-text{color:#a2c2b8;font-size:14px;line-height:1.6;margin-top:9px}
+.map-box{background:#0d1d31;border:1px solid #203650;border-radius:13px;padding:13px}
+#map{height:380px;border-radius:9px;z-index:1}
+.map-info{display:flex;flex-wrap:wrap;gap:15px;color:#91a5bd;font-size:12px;margin-top:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th,td{text-align:left;padding:12px;border-bottom:1px solid #203650;white-space:nowrap}
+th{font-size:12px;color:#91a5bd}td{font-size:13px}
+.priority{font-weight:bold}.high{color:#ff6478}.medium{color:#ffd04c}.low{color:#39e89e}
+.controls{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:17px}
+input[type=date]{background:#102238;color:#eaf2ff;border:1px solid #304864;border-radius:8px;padding:10px}
+.message{background:#102238;border-radius:9px;padding:14px;color:#91a5bd;margin:12px 0}
+.seg-grid,.health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.footer{text-align:center;color:#58708e;padding:30px 0}
+@media(max-width:1050px){.sidebar{width:185px}.main{margin-left:185px;width:calc(100% - 185px)}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.dashboard-grid{grid-template-columns:1fr}.analytics,.history-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.sidebar{width:100%;position:relative;inset:auto}.app{display:block}.main{margin:0;width:100%;padding:15px}.stats,.bin-grid,.analytics,.history-summary,.seg-grid,.health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}header{align-items:flex-start;flex-direction:column}#map{height:300px}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+<div class="logo">Swachh<span>AI</span></div>
+<div class="subtitle">Smart Waste Intelligence</div>
+<a class="nav active" href="#command">◉ Command Center</a>
+<a class="nav" href="#bins">▣ Bin Monitoring</a>
+<a class="nav" href="#routes">◇ Collection Routes</a>
+<a class="nav" href="#ai">◈ AI Predictions</a>
+<a class="nav" href="#analytics">▤ Analytics</a>
+<a class="nav" href="#history">◷ Historical Data</a>
+<a class="nav" href="#segregation">♻ Waste Segregation</a>
+<a class="nav" href="#health">⚡ IoT Health</a>
+<div class="system">● System Online<div class="muted">IoT + AI + Backend</div></div>
+</aside>
+<main class="main">
+<header id="command">
+<div><h1>SwachhAI Command Center</h1><div class="muted">Smart waste monitoring and collection planning</div></div>
+<div class="live">● LIVE DATA</div>
+</header>
+
+<section class="stats">
+<div class="card"><div class="stat-title">Total Bins</div><div class="stat-value" id="totalBins">0</div></div>
+<div class="card"><div class="stat-title">Normal</div><div class="stat-value green" id="normalBins">0</div></div>
+<div class="card"><div class="stat-title">Warning</div><div class="stat-value yellow" id="warningBins">0</div></div>
+<div class="card"><div class="stat-title">Critical</div><div class="stat-value red" id="criticalBins">0</div></div>
+<div class="card"><div class="stat-title">Average Fill</div><div class="stat-value blue" id="averageFill">0%</div></div>
+</section>
+
+<section class="section dashboard-grid" id="bins">
+<div><h2>Live Bin Monitoring</h2><div class="bin-grid" id="binContainer"></div></div>
+<div>
+<h2>Smart Alerts</h2><div class="panel" id="alerts">Loading bin alerts...</div>
+<div class="ai-box" id="ai"><div class="ai-title">✦ AI Collection Recommendation</div><div class="ai-text" id="aiRecommendation">Waiting for live data...</div></div>
+</div>
+</section>
+
+<section class="section" id="map-section">
+<h2>Nagpur Smart Waste Map</h2>
+<div class="map-box"><div id="map"></div><div class="map-info"><span>🟢 Normal</span><span>🟡 Warning</span><span>🔴 Critical</span><span>📍 Demo bin locations</span></div></div>
+<div class="muted">Map markers are illustrative demo locations, not verified deployed bin locations.</div>
+</section>
+
+<section class="section" id="analytics">
+<h2>City Analytics</h2>
+<div class="analytics">
+<div class="card"><div class="stat-title">Highest Fill</div><div class="stat-value red" id="highestFill">0%</div></div>
+<div class="card"><div class="stat-title">Total Recorded Weight</div><div class="stat-value green" id="totalWeight">0 kg</div></div>
+<div class="card"><div class="stat-title">Collection Priority</div><div class="stat-value red" id="priorityCount">0</div></div>
+<div class="card"><div class="stat-title">System Efficiency Estimate</div><div class="stat-value green" id="efficiency">0%</div></div>
+</div>
+</section>
+
+<section class="section" id="routes">
+<h2>🚛 Smart Collection Routes</h2>
+<div class="panel">
+<p class="muted">Suggested collection sequence, ordered by highest bin fill level first. This is a priority order, not a road-distance-optimized route.</p>
+<div class="controls"><button class="button" onclick="loadBins()">↻ Refresh Collection Route</button></div>
+<div id="routeMessage" class="message">Loading collection priorities...</div>
+<div class="table-wrap"><table><thead><tr><th>Order</th><th>Bin</th><th>Fill Level</th><th>Weight</th><th>Status</th><th>Priority</th><th>Action</th></tr></thead><tbody id="routeTable"></tbody></table></div>
+</div>
+</section>
+
+<section class="section" id="history">
+<h2>◷ Historical Waste Data</h2>
+<div class="panel">
+<div class="controls">
+<input type="date" id="historyDate">
+<button class="button" onclick="loadYesterday()">Show Yesterday</button>
+<button class="button" onclick="loadHistory()">Show Selected Date</button>
+<button class="button" onclick="loadHistory()">↻ Refresh History</button>
+</div>
+<div class="history-summary">
+<div class="card"><div class="stat-title">Total Records</div><div class="stat-value" id="historyTotal">0</div></div>
+<div class="card"><div class="stat-title">Average Fill</div><div class="stat-value blue" id="historyAverage">0%</div></div>
+<div class="card"><div class="stat-title">Highest Fill</div><div class="stat-value red" id="historyHighest">0%</div></div>
+<div class="card"><div class="stat-title">Total Recorded Weight</div><div class="stat-value green" id="historyWeight">0 kg</div></div>
+</div>
+<div id="historyMessage" class="message">Choose a date to load saved readings.</div>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>Bin</th><th>Time</th><th>Fill</th><th>Weight</th><th>Temperature</th><th>Priority</th></tr></thead><tbody id="historyTable"></tbody></table></div>
+</div>
+</section>
+
+<section class="section" id="segregation">
+<h2>♻ Waste Segregation Intelligence</h2>
+<div class="seg-grid">
+<div class="card"><div class="stat-title">Wet Waste</div><div class="stat-value green">38%</div></div>
+<div class="card"><div class="stat-title">Dry Waste</div><div class="stat-value blue">32%</div></div>
+<div class="card"><div class="stat-title">Plastic</div><div class="stat-value yellow">18%</div></div>
+<div class="card"><div class="stat-title">Mixed Waste</div><div class="stat-value red">12%</div></div>
+</div>
+<div class="muted">Illustrative waste-category estimates for the demo.</div>
+</section>
+
+<section class="section" id="health">
+<h2>⚡ IoT Device Health</h2>
+<div class="health-grid">
+<div class="card"><div>ESP32 Network</div><div class="green">● Hardware demo mode</div></div>
+<div class="card"><div>MQTT Broker</div><div class="yellow">● Not verified in this demo</div></div>
+<div class="card"><div>SQLite Database</div><div class="green">● Used by backend</div></div>
+<div class="card"><div>FastAPI</div><div class="green" id="apiHealth">● Checking API...</div></div>
+</div>
+</section>
+<div class="footer">SwachhAI • Smart Waste Management • Simulated demo readings</div>
+</main>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const API="http://127.0.0.1:8000";
+const positions=[[21.1458,79.0882],[21.1538,79.0830],[21.1358,79.0728],[21.1608,79.1012],[21.1258,79.0915]];
+let map=null,markers=[];
+
+function status(fill){return fill>=85?"CRITICAL":fill>=60?"WARNING":"NORMAL"}
+function priority(fill){return fill>=85?"CRITICAL":fill>=70?"HIGH":fill>=50?"MEDIUM":"LOW"}
+function badge(value){return `<span class="badge ${value.toLowerCase()}">${value}</span>`}
+function priorityClass(value){return ["CRITICAL","HIGH"].includes(value)?"high":value==="MEDIUM"?"medium":"low"}
+function color(fill){return fill>=85?"#ff4f63":fill>=60?"#ffc83d":"#32df96"}
+
+function initMap(){
+if(!window.L){document.getElementById("map").textContent="Map library unavailable. Check your internet connection.";return}
+map=L.map("map").setView([21.1458,79.0882],12);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+}
+
+function updateStats(bins){
+const n=bins.length;
+const avg=n?bins.reduce((s,b)=>s+Number(b.fill_level||0),0)/n:0;
+const highest=n?Math.max(...bins.map(b=>Number(b.fill_level||0))):0;
+const weight=bins.reduce((s,b)=>s+Number(b.weight||0),0);
+document.getElementById("totalBins").textContent=n;
+document.getElementById("normalBins").textContent=bins.filter(b=>status(Number(b.fill_level))==="NORMAL").length;
+document.getElementById("warningBins").textContent=bins.filter(b=>status(Number(b.fill_level))==="WARNING").length;
+document.getElementById("criticalBins").textContent=bins.filter(b=>status(Number(b.fill_level))==="CRITICAL").length;
+document.getElementById("averageFill").textContent=avg.toFixed(1)+"%";
+document.getElementById("highestFill").textContent=highest.toFixed(1)+"%";
+document.getElementById("totalWeight").textContent=weight.toFixed(2)+" kg";
+document.getElementById("priorityCount").textContent=bins.filter(b=>Number(b.fill_level)>=70).length;
+document.getElementById("efficiency").textContent=Math.max(0,100-avg).toFixed(0)+"%";
+}
+
+function updateBins(bins){
+document.getElementById("binContainer").innerHTML=bins.map(b=>{
+const f=Number(b.fill_level||0),s=status(f);
+return `<div class="bin-card"><div class="bin-top"><b>${b.bin_id}</b>${badge(s)}</div><div class="fill">${f.toFixed(1)}%</div><div class="bar"><div class="bar-inner" style="width:${Math.min(100,f)}%;background:${color(f)}"></div></div><div class="details"><span>Weight: ${Number(b.weight||0).toFixed(2)} kg</span><span>${Number(b.temperature||0).toFixed(1)}°C</span></div><div class="details"><span>Priority: ${priority(f)}</span><span>${b.timestamp||""}</span></div></div>`;
+}).join("");
+}
+
+function updateRoutes(bins){
+const sorted=[...bins].sort((a,b)=>Number(b.fill_level)-Number(a.fill_level));
+document.getElementById("routeTable").innerHTML=sorted.map((b,i)=>{
+const f=Number(b.fill_level||0),p=priority(f);
+const action=f>=85?"Collect immediately":f>=70?"Collect soon":f>=50?"Monitor":"Routine pickup";
+return `<tr><td>${i+1}</td><td><b>${b.bin_id}</b></td><td>${f.toFixed(1)}%</td><td>${Number(b.weight||0).toFixed(2)} kg</td><td>${badge(status(f))}</td><td class="priority ${priorityClass(p)}">${p}</td><td>${action}</td></tr>`;
+}).join("");
+document.getElementById("routeMessage").textContent=sorted.length?`Collection priority list updated. ${sorted.filter(b=>Number(b.fill_level)>=70).length} bin(s) are at or above 70% fill.`:"No bin readings were returned.";
+}
+
+function updateMap(bins){
+if(!map)return;
+markers.forEach(m=>map.removeLayer(m));markers=[];
+bins.forEach((b,i)=>{
+const f=Number(b.fill_level||0),pos=positions[i%positions.length];
+const m=L.circleMarker(pos,{radius:9,fillColor:color(f),color:"#fff",weight:2,fillOpacity:.9}).addTo(map);
+m.bindPopup(`<b>${b.bin_id}</b><br>Fill: ${f.toFixed(1)}%<br>Weight: ${Number(b.weight||0).toFixed(2)} kg<br>Temperature: ${Number(b.temperature||0).toFixed(1)}°C<br>Status: ${status(f)}`);
+markers.push(m);
+});
+}
+
+function updateAlerts(bins){
+const urgent=[...bins].filter(b=>Number(b.fill_level)>=60).sort((a,b)=>Number(b.fill_level)-Number(a.fill_level));
+document.getElementById("alerts").innerHTML=urgent.length?urgent.map(b=>{
+const f=Number(b.fill_level),crit=f>=85;
+return `<div class="alert ${crit?"critical-alert":""}"><div class="alert-title">${crit?"🔴":"🟡"} ${b.bin_id} needs attention</div><div class="alert-text">Fill level: ${f.toFixed(1)}%. ${crit?"Immediate collection recommended.":"Plan collection soon."}</div></div>`;
+}).join(""):`<div class="alert"><div class="alert-title">✓ No urgent alerts</div><div class="alert-text">All bins are below warning level.</div></div>`;
+}
+
+function updateAI(bins){
+if(!bins.length){document.getElementById("aiRecommendation").textContent="No bin readings available.";return}
+const b=[...bins].sort((a,c)=>Number(c.fill_level)-Number(a.fill_level))[0],f=Number(b.fill_level);
+document.getElementById("aiRecommendation").textContent=f>=85?`${b.bin_id} is at ${f.toFixed(1)}% capacity. Recommend immediate collection to prevent overflow.`:f>=70?`${b.bin_id} is at ${f.toFixed(1)}% capacity. Prepare the next collection cycle.`:f>=50?`${b.bin_id} is at ${f.toFixed(1)}% capacity. Continue monitoring its fill level.`:"Current fill levels are manageable. Continue routine monitoring.";
+}
+
+async function loadBins(){
+try{
+const r=await fetch(API+"/bins");
+if(!r.ok)throw Error("API returned "+r.status);
+const bins=await r.json();
+updateStats(bins);updateBins(bins);updateRoutes(bins);updateMap(bins);updateAlerts(bins);updateAI(bins);
+document.getElementById("apiHealth").textContent="● API online";
+}catch(e){
+document.getElementById("apiHealth").textContent="● API unavailable";
+document.getElementById("alerts").textContent="Cannot connect to backend. Ensure FastAPI is running on port 8000.";
+document.getElementById("routeMessage").textContent="Could not load routes. Check the backend terminal.";
+console.error(e);
+}
+}
+
+function dateString(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function setHistoryMessage(s){document.getElementById("historyMessage").textContent=s}
+
+async function loadHistory(){
+const date=document.getElementById("historyDate").value;
+if(!date){setHistoryMessage("Please select a date first.");return}
+setHistoryMessage("Loading saved history...");
+try{
+const r=await fetch(`${API}/history?date=${encodeURIComponent(date)}`);
+if(!r.ok)throw Error("History API returned "+r.status);
+const data=await r.json();
+const records=Array.isArray(data)?data:(data.records||[]);
+const n=records.length;
+const avg=n?records.reduce((s,b)=>s+Number(b.fill_level||0),0)/n:0;
+const high=n?Math.max(...records.map(b=>Number(b.fill_level||0))):0;
+const weight=records.reduce((s,b)=>s+Number(b.weight||0),0);
+document.getElementById("historyTotal").textContent=n;
+document.getElementById("historyAverage").textContent=avg.toFixed(1)+"%";
+document.getElementById("historyHighest").textContent=high.toFixed(1)+"%";
+document.getElementById("historyWeight").textContent=weight.toFixed(2)+" kg";
+document.getElementById("historyTable").innerHTML=records.map(b=>{
+const p=b.priority||priority(Number(b.fill_level||0));
+return `<tr><td>${b.id??""}</td><td>${b.bin_id??""}</td><td>${b.timestamp??""}</td><td>${Number(b.fill_level||0).toFixed(1)}%</td><td>${Number(b.weight||0).toFixed(2)} kg</td><td>${Number(b.temperature||0).toFixed(1)}°C</td><td class="priority ${priorityClass(p)}">${p}</td></tr>`;
+}).join("");
+setHistoryMessage(n?`Showing ${n} saved sensor records for ${date}. These may include simulated demo readings.`:`No saved readings found for ${date}.`);
+}catch(e){setHistoryMessage("Could not load history. Check that the backend is running.");console.error(e)}
+}
+
+function loadYesterday(){
+const d=new Date();d.setDate(d.getDate()-1);
+document.getElementById("historyDate").value=dateString(d);
+loadHistory();
+}
+
+document.querySelectorAll(".nav").forEach(a=>{
+a.addEventListener("click",()=>{
+document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
+a.classList.add("active");
+const target=document.querySelector(a.getAttribute("href"));
+if(target)target.scrollIntoView({behavior:"smooth",block:"start"});
+if(a.getAttribute("href")==="#routes")loadBins();
+if(a.getAttribute("href")==="#history")loadHistory();
+});
+});
+
+document.addEventListener("DOMContentLoaded",()=>{
+document.getElementById("historyDate").value=dateString(new Date());
+initMap();
+loadBins();
+loadHistory();
+setInterval(loadBins,15000);
+});
+</script>
+</body>
+</html>
